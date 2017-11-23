@@ -4,6 +4,9 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.media.AudioAttributes;
+import android.media.MediaPlayer;
+import android.media.SoundPool;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -39,6 +42,9 @@ public class GameView extends SurfaceView
     int width, height;
     Player player;
     Enemy []enemies = new Enemy[TOTAL_ENEMIES];
+    MediaPlayer mediaPlayer = null;
+    SoundPool soundPool = null;
+    int effectJump, effectDeath;
 
     public GameView(Context context, int width, int height){
         super(context);
@@ -69,6 +75,22 @@ public class GameView extends SurfaceView
         paintScore.setTextSize(36);
         paintScore.setAntiAlias(true);
         paintScore.setTextAlign(Paint.Align.CENTER);
+
+        mediaPlayer = MediaPlayer.create(context, R.raw.background);
+
+        AudioAttributes audioAttributes =
+                new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build();
+
+        soundPool = new SoundPool.Builder()
+                .setAudioAttributes(audioAttributes)
+                .setMaxStreams(2)
+                .build();
+
+        effectJump = soundPool.load(context, R.raw.jump, 1);
+        effectDeath = soundPool.load(context, R.raw.death, 1);
     }
 
 
@@ -77,7 +99,9 @@ public class GameView extends SurfaceView
     }
 
     public void singleTap(){
+
         player.jump();
+        soundPool.play(effectJump, 1, 1, 0, 0, 1.0f);
     }
 
     @Override
@@ -90,6 +114,9 @@ public class GameView extends SurfaceView
         isRunning = true;
         gameLoop = new Thread(this);
         gameLoop.start();
+
+        mediaPlayer.start();
+        mediaPlayer.setLooping(true);
     }
 
     public void stop(){
@@ -100,6 +127,8 @@ public class GameView extends SurfaceView
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        mediaPlayer.stop();
     }
 
     private void desenha(Canvas canvas){
@@ -130,6 +159,7 @@ public class GameView extends SurfaceView
         for (int i = 0; i < TOTAL_ENEMIES; i++){
             if (player.collided(enemies[i])) {
                 gameOver = true;
+                soundPool.play(effectDeath, 1, 1, 0, 0, 1.0f);
                 break;
             }
         }
